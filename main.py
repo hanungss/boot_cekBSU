@@ -9,57 +9,55 @@ import os
 
 load_dotenv()
 
-# Setup browser
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-driver = webdriver.Chrome(options=chrome_options)
+options = Options()
+options.add_argument("--headless")
+driver = webdriver.Chrome(options=options)
 
-# Load data dari Excel
 df = pd.read_excel("data.xlsx")
 
-# Hasil akan disimpan ke sini
 hasil = []
 
-# Loop tiap baris dan isi form
 for index, row in df.iterrows():
     try:
         driver.get("https://bsu.bpjsketenagakerjaan.go.id/")
+        time.sleep(3)
 
-        # Tunggu sebentar agar page selesai load
-        time.sleep(2)
-
-        # Input NIK
-        input_nik = driver.find_element(By.ID, "nik")
-        input_nik.clear()
-        input_nik.send_keys(str(row['NIK']))
-
-        # Input Nama Lengkap
-        input_nama = driver.find_element(By.ID, "nama")
-        input_nama.clear()
-        input_nama.send_keys(str(row['Nama']))
+        # Isi form berdasarkan ID terbaru
+        driver.find_element(By.ID, "nik-bsu").send_keys(str(row['NIK']))
+        driver.find_element(By.ID, "nama-bsu").send_keys(str(row['Nama']))
+        driver.find_element(By.ID, "tgl-lahir-bsu").send_keys(str(row['TanggalLahir']))
+        driver.find_element(By.ID, "nama-ibu").send_keys(str(row['NamaIbu']))
+        driver.find_element(By.ID, "nama-ibu-verif").send_keys(str(row['NamaIbu']))
+        driver.find_element(By.ID, "hp").send_keys(str(row['NoHP']))
+        driver.find_element(By.ID, "hp-verif").send_keys(str(row['NoHP']))
+        driver.find_element(By.ID, "email").send_keys(str(row['Email']))
+        driver.find_element(By.ID, "email-verif").send_keys(str(row['Email']))
 
         # Submit
-        submit = driver.find_element(By.ID, "btnCek")
-        submit.click()
+        driver.find_element(By.ID, "btn-cek-bsu").click()
+        time.sleep(5)
 
-        time.sleep(3)  # Tunggu hasil muncul
-
-        # Ambil hasil
-        result = driver.find_element(By.ID, "hasil").text
-        print(f"{row['NIK']} - {result}")
-        hasil.append({"NIK": row['NIK'], "Nama": row['Nama'], "Hasil": result})
+        # Ambil hasil dari notifikasi / hasil cek (jika ada)
+        hasil_teks = driver.find_element(By.ID, "hasil").text
+        hasil.append({
+            "NIK": row['NIK'],
+            "Nama": row['Nama'],
+            "Hasil": hasil_teks
+        })
 
     except Exception as e:
-        print(f"Error pada baris {index}: {e}")
-        hasil.append({"NIK": row['NIK'], "Nama": row['Nama'], "Hasil": "ERROR"})
+        print(f"Error baris {index}: {e}")
+        hasil.append({
+            "NIK": row['NIK'],
+            "Nama": row['Nama'],
+            "Hasil": "ERROR"
+        })
 
-# Simpan hasil
-hasil_df = pd.DataFrame(hasil)
-hasil_df.to_csv("hasil.csv", index=False)
+# Simpan hasil ke CSV
+pd.DataFrame(hasil).to_csv("hasil.csv", index=False)
 
-# Git commit & push
+# Push ke GitHub
 repo = Repo(".")
 repo.git.add("hasil.csv")
-repo.index.commit("Update hasil cek BSU otomatis")
-origin = repo.remote(name="origin")
-origin.push()
+repo.index.commit("Update hasil cek BSU")
+repo.remote(name="origin").push()
