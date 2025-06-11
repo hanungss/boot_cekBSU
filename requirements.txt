@@ -1,4 +1,6 @@
-pandas
-selenium
 python-dotenv
 gitpython
+selenium
+pandas
+openpyxl
+beautifulsoup4
