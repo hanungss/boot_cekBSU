@@ -16,6 +16,9 @@ driver = webdriver.Chrome(options=chrome_options)
 df = pd.read_excel("data.xlsx", engine="openpyxl")
 df.columns = df.columns.str.strip().str.upper()  # Standarisasi header
 
+# List penampung hasil
+hasil_list = []
+
 # Loop data peserta
 for index, row in df.iterrows():
     driver.get("https://bsu.bpjsketenagakerjaan.go.id/")
@@ -46,20 +49,26 @@ for index, row in df.iterrows():
 
     time.sleep(3)
 
+    # Ambil hasil
     soup = BeautifulSoup(driver.page_source, "html.parser")
-    hasil = soup.select_one("div.respon-bsu h3")
+    hasil_elem = soup.select_one("div.respon-bsu h3")
+    hasil_text = hasil_elem.get_text(strip=True) if hasil_elem else "Tidak ada hasil ditemukan."
 
+    # Tampilkan di terminal
     print(f"Hasil untuk {row['NIK']} - {row['NAMA']}")
-    if hasil:
-        print(hasil.get_text(strip=True))
-    else:
-        print("Tidak ada hasil ditemukan.")
-    print("="*30)
+    print(hasil_text)
+    print("=" * 30)
 
-    # Ambil hasil dan tampilkan (bisa dimodifikasi sesuai kebutuhan)
-    #print(f"Hasil untuk {row['NIK']} - {row['NAMA']}")
-    #print(driver.page_source)
-    #print("======================")
+    # Tambahkan ke list hasil
+    hasil_list.append({
+        "NIK": row["NIK"],
+        "NAMA": row["NAMA"],
+        "HASIL": hasil_text
+    })
 
-# Selesai
+# Selesai dan simpan ke Excel
+hasil_df = pd.DataFrame(hasil_list)
+hasil_df.to_excel("hasil_bsu.xlsx", index=False)
+print("✅ Semua hasil disimpan ke 'hasil_bsu.xlsx'")
+
 driver.quit()
